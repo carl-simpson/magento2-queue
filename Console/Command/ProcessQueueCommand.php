@@ -16,6 +16,7 @@ use Springbot\Queue\Model\Queue;
 class ProcessQueueCommand extends Command
 {
 
+    private $_state;
     private $_queue;
 
     /**

@@ -5,14 +5,14 @@ namespace Springbot\Queue\Console\Command;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\Console\Helper\Table;
 use Magento\Framework\App\State;
 use Springbot\Queue\Model\Queue;
 use Symfony\Component\Console\Input\InputArgument;
-use Zend\Text\Table\Table as TextTable;
 use Springbot\Queue\Model\ResourceModel\Job\Collection as JobCollection;
 
 /**
- * Class ProcessQueue
+ * Class ListCommand
  *
  * @package Springbot\Queue\Console\Command
  */
@@ -22,6 +22,7 @@ class ListCommand extends Command
     const PER_PAGE_ARGUMENT = '<per_page>';
     const QUEUE_ARGUMENT = '<queue>';
 
+    private $_queue;
     private $_jobCollection;
 
     /**
@@ -52,9 +53,9 @@ class ListCommand extends Command
      * @param InputInterface $input
      * @param OutputInterface $output
      *
-     * @return string
+     * @return int
      */
-    protected function execute(InputInterface $input, OutputInterface $output)
+    protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $headers = ['queue', 'class', 'method', 'args', 'priority', 'attempts', 'error'];
         $this->_jobCollection->setCurPage($input->getArgument(self::PAGE_ARGUMENT));
@@ -67,36 +68,19 @@ class ListCommand extends Command
         }
         $jobs = $this->_jobCollection->toArray();
 
-        // Pre-calculate the max column widths
-        $maxWidths = [];
-        foreach ($headers as $header) {
-            $maxWidths[$header] = strlen($header) + 2;
-        }
-        foreach ($jobs['items'] as $job) {
-            foreach ($headers as $header) {
-                $newLength = strlen($job[$header]) + 2;
-                if ($newLength > $maxWidths[$header]) {
-                    $maxWidths[$header] = $newLength;
-                }
-            }
-        }
-        $maxWidths = array_values($maxWidths);
+        $table = new Table($output);
+        $table->setHeaders($headers);
 
-        $table = new TextTable([
-            'columnWidths' => $maxWidths,
-            'decorator' => 'ascii',
-            'AutoSeparate' => TextTable::AUTO_SEPARATE_HEADER,
-            'padding' => 1
-        ]);
-
-        $table->appendRow($headers);
         foreach ($jobs['items'] as $job) {
-            $rowArr = [];
+            $row = [];
             foreach ($headers as $header) {
-                $rowArr[$header] = $job[$header];
+                $row[] = $job[$header] ?? '';
             }
-            $table->appendRow($rowArr);
+            $table->addRow($row);
         }
-        $output->writeln($table->render());
+
+        $table->render();
+
+        return Command::SUCCESS;
     }
 }
